@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>自律打卡倒计时</title>
+  <style>
+    :root {
+      --text: #1d1d1f;
+      --subtle: #6e6e73;
+      --card: rgba(255, 255, 255, 0.62);
+      --line: rgba(255, 255, 255, 0.8);
+      --shadow: 0 18px 45px rgba(17, 24, 39, 0.12);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #f4f8ff 0%, transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, #fff5f8 0%, transparent 55%),
+        linear-gradient(135deg, #f7f9fc 0%, #edf2ff 45%, #f4f7ff 100%);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .wrap {
+      width: min(920px, 100%);
+      background: var(--card);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(22px, 4vw, 40px);
+      position: relative;
+    }
+
+    .lang-switch {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--text);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    .lang-switch:hover {
+      background: #fff;
+      border-color: rgba(0, 113, 227, 0.35);
+    }
+
+    .title {
+      margin: 16px 0 8px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: clamp(26px, 4vw, 42px);
+    }
+
+    .subtitle {
+      margin: 0 0 28px;
+      color: var(--subtle);
+      font-size: clamp(14px, 2vw, 17px);
+    }
+
+    .form {
+      display: grid;
+      grid-template-columns: 1fr 190px 130px;
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+
+    input, button {
+      appearance: none;
+      border: none;
+      outline: none;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 15px;
+      transition: all .2s ease;
+    }
+
+    input {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      color: var(--text);
+    }
+
+    input:focus {
+      border-color: rgba(0, 113, 227, 0.35);
+      box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+    }
+
+    button {
+      background: #0071e3;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover { filter: brightness(1.05); }
+    button:active { transform: scale(0.99); }
+
+    .card {
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      border-radius: 18px;
+      padding: clamp(20px, 3vw, 28px);
+    }
+
+    .goal {
+      margin: 0 0 12px;
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    .countdown {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      margin: 10px 0 4px;
+    }
+
+    .num {
+      font-size: clamp(44px, 10vw, 86px);
+      line-height: 0.95;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .unit {
+      font-size: clamp(18px, 2.5vw, 28px);
+      color: var(--subtle);
+      margin-bottom: 8px;
+    }
+
+    .detail {
+      margin: 8px 0 0;
+      color: var(--subtle);
+      font-size: 14px;
+    }
+
+    .quote {
+      margin: 20px 0 0;
+      padding: 14px 16px;
+      border-left: 3px solid rgba(0, 113, 227, 0.25);
+      background: rgba(0, 113, 227, 0.05);
+      border-radius: 12px;
+      color: #2b2b2f;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: #8a8a8f;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    @media (max-width: 760px) {
+      .form {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <button id="langBtn" class="lang-switch" type="button">中 / EN / 日</button>
+
+    <h1 class="title" id="titleText">自律打卡倒计时</h1>
+    <p class="subtitle" id="subtitleText">把目标写下来，把时间看见，把行动坚持下去。</p>
+
+    <section class="form" aria-label="倒计时设置" id="formSection">
+      <input id="goalInput" type="text" placeholder="例如：离考研还有多少天" />
+      <input id="dateInput" type="date" />
+      <button id="startBtn">开始倒计时</button>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <h2 class="goal" id="goalText">离目标还有</h2>
+      <div class="countdown">
+        <div class="num" id="dayNum">0</div>
+        <div class="unit" id="dayUnit">天</div>
+      </div>
+      <p class="detail" id="detailText">请先输入目标并选择日期</p>
+      <p class="quote" id="quoteText">“今天的自律，是明天的自由。”</p>
+    </section>
+
+    <div class="footer">Minimal Countdown • Single File</div>
+  </main>
+
+  <script>
+    const i18n = {
+      zh: {
+        htmlLang: "zh-CN",
+        title: "自律打卡倒计时",
+        subtitle: "把目标写下来，把时间看见，把行动坚持下去。",
+        formAria: "倒计时设置",
+        goalPlaceholder: "例如：离考研还有多少天",
+        startBtn: "开始倒计时",
+        dayUnit: "天",
+        defaultGoal: "离目标还有",
+        todayGoal: "就是今天",
+        expiredGoal: "目标日期已到",
+        initialDetail: "请先输入目标并选择日期",
+        targetDatePrefix: "目标日期：",
+        todayDetail: "就是今天，马上行动！",
+        passedPrefix: "已过去 ",
+        passedSuffix: " 天，但重新开始永远不晚。",
+        alertNoDate: "请选择目标日期",
+        alertInvalidDate: "日期格式不正确，请重新选择",
+        quotes: [
+          "今天的自律，是明天的自由。",
+          "种一棵树最好的时间是十年前，其次是现在。",
+          "真正拉开差距的，是日复一日的坚持。",
+          "你不是在和别人比较，你是在兑现自己的潜力。",
+          "慢一点没关系，只要你没有停下。",
+          "所有看似不起波澜的日复一日，终会在某天让你看到坚持的意义。"
+        ]
+      },
+      en: {
+        htmlLang: "en",
+        title: "Discipline Countdown",
+        subtitle: "Write down your goal, see your time, and stay consistent.",
+        formAria: "Countdown settings",
+        goalPlaceholder: "e.g. Days until graduate entrance exam",
+        startBtn: "Start Countdown",
+        dayUnit: "days",
+        defaultGoal: "Days left until your goal",
+        todayGoal: "It is today",
+        expiredGoal: "Target date has passed",
+        initialDetail: "Enter your goal and choose a target date",
+        targetDatePrefix: "Target date: ",
+        todayDetail: "Today is the day. Take action now!",
+        passedPrefix: "Passed ",
+        passedSuffix: " days, but it is never too late to restart.",
+        alertNoDate: "Please select a target date",
+        alertInvalidDate: "Invalid date format, please choose again",
+        quotes: [
+          "Discipline today is freedom tomorrow.",
+          "You do not have to be extreme, just consistent.",
+          "Small daily progress builds extraordinary results.",
+          "Do not compete with others, outgrow your old self.",
+          "Slow is fine, stopping is not.",
+          "Consistency is the quiet superpower."
+        ]
+      },
+      ja: {
+        htmlLang: "ja",
+        title: "習慣化カウントダウン",
+        subtitle: "目標を言葉にし、時間を見える化し、行動を続けよう。",
+        formAria: "カウントダウン設定",
+        goalPlaceholder: "例：大学院試験まであと何日",
+        startBtn: "カウント開始",
+        dayUnit: "日",
+        defaultGoal: "目標まであと",
+        todayGoal: "いよいよ今日",
+        expiredGoal: "目標日は過ぎました",
+        initialDetail: "目標と日付を入力してください",
+        targetDatePrefix: "目標日：",
+        todayDetail: "今日は本番。今すぐ行動しよう。",
+        passedPrefix: "",
+        passedSuffix: "日過ぎました。でも再スタートはいつでもできます。",
+        alertNoDate: "目標日を選択してください",
+        alertInvalidDate: "日付の形式が正しくありません",
+        quotes: [
+          "今日の自律が、明日の自由になる。",
+          "完璧より継続。継続が未来を変える。",
+          "毎日の小さな一歩が大きな差を生む。",
+          "比べる相手は他人ではなく昨日の自分。",
+          "遅くてもいい。止まらないことが大切。",
+          "積み重ねは、いちばん静かな強さ。"
+        ]
+      }
+    };
+
+    const languageOrder = ["zh", "en", "ja"];
+    const languageLabel = {
+      zh: "中文",
+      en: "English",
+      ja: "日本語"
+    };
+
+    const goalInput = document.getElementById("goalInput");
+    const dateInput = document.getElementById("dateInput");
+    const startBtn = document.getElementById("startBtn");
+    const langBtn = document.getElementById("langBtn");
+    const titleText = document.getElementById("titleText");
+    const subtitleText = document.getElementById("subtitleText");
+    const formSection = document.getElementById("formSection");
+    const goalText = document.getElementById("goalText");
+    const dayNum = document.getElementById("dayNum");
+    const dayUnit = document.getElementById("dayUnit");
+    const detailText = document.getElementById("detailText");
+    const quoteText = document.getElementById("quoteText");
+
+    let currentLang = localStorage.getItem("discipline_lang") || "zh";
+    if (!i18n[currentLang]) currentLang = "zh";
+
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function randomQuote() {
+      const list = i18n[currentLang].quotes;
+      const i = Math.floor(Math.random() * list.length);
+      return "“" + list[i] + "”";
+    }
+
+    function updateLanguageUI() {
+      const t = i18n[currentLang];
+      document.documentElement.lang = t.htmlLang;
+      document.title = t.title;
+      titleText.textContent = t.title;
+      subtitleText.textContent = t.subtitle;
+      formSection.setAttribute("aria-label", t.formAria);
+      goalInput.placeholder = t.goalPlaceholder;
+      startBtn.textContent = t.startBtn;
+      dayUnit.textContent = t.dayUnit;
+      langBtn.textContent = languageLabel[currentLang];
+    }
+
+    function getRemain(targetDate) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const target = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const diffMs = target - today;
+      const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      return days;
+    }
+
+    function render(goal, targetDate) {
+      const t = i18n[currentLang];
+      const days = getRemain(targetDate);
+
+      if (days > 0) {
+        goalText.textContent = goal || t.defaultGoal;
+        dayNum.textContent = days;
+        detailText.textContent = `${t.targetDatePrefix}${targetDate.getFullYear()}-${pad(targetDate.getMonth() + 1)}-${pad(targetDate.getDate())}`;
+      } else if (days === 0) {
+        goalText.textContent = goal || t.todayGoal;
+        dayNum.textContent = "0";
+        detailText.textContent = t.todayDetail;
+      } else {
+        goalText.textContent = goal || t.expiredGoal;
+        dayNum.textContent = Math.abs(days);
+        detailText.textContent = `${t.passedPrefix}${Math.abs(days)}${t.passedSuffix}`;
+      }
+
+      quoteText.textContent = randomQuote();
+    }
+
+    function startCountdown() {
+      const t = i18n[currentLang];
+      const goal = goalInput.value.trim() || t.defaultGoal;
+      const value = dateInput.value;
+
+      if (!value) {
+        alert(t.alertNoDate);
+        return;
+      }
+
+      const targetDate = new Date(value + "T00:00:00");
+      if (Number.isNaN(targetDate.getTime())) {
+        alert(t.alertInvalidDate);
+        return;
+      }
+
+      localStorage.setItem("discipline_goal", goal);
+      localStorage.setItem("discipline_date", value);
+
+      render(goal, targetDate);
+    }
+
+    startBtn.addEventListener("click", startCountdown);
+    langBtn.addEventListener("click", () => {
+      const currentIndex = languageOrder.indexOf(currentLang);
+      const nextIndex = (currentIndex + 1) % languageOrder.length;
+      currentLang = languageOrder[nextIndex];
+      localStorage.setItem("discipline_lang", currentLang);
+      updateLanguageUI();
+
+      const savedGoalValue = localStorage.getItem("discipline_goal");
+      const savedDateValue = localStorage.getItem("discipline_date");
+      if (savedDateValue) {
+        render(savedGoalValue || i18n[currentLang].defaultGoal, new Date(savedDateValue + "T00:00:00"));
+      } else {
+        goalText.textContent = i18n[currentLang].defaultGoal;
+        detailText.textContent = i18n[currentLang].initialDetail;
+        quoteText.textContent = randomQuote();
+      }
+    });
+
+    const savedGoal = localStorage.getItem("discipline_goal");
+    const savedDate = localStorage.getItem("discipline_date");
+
+    updateLanguageUI();
+
+    if (savedGoal) goalInput.value = savedGoal;
+    if (savedDate) dateInput.value = savedDate;
+
+    if (savedDate) {
+      render(savedGoal || i18n[currentLang].defaultGoal, new Date(savedDate + "T00:00:00"));
+    } else {
+      goalText.textContent = i18n[currentLang].defaultGoal;
+      detailText.textContent = i18n[currentLang].initialDetail;
+      quoteText.textContent = randomQuote();
+    }
+
+    setInterval(() => {
+      const date = localStorage.getItem("discipline_date");
+      const goal = localStorage.getItem("discipline_goal") || i18n[currentLang].defaultGoal;
+      if (date) render(goal, new Date(date + "T00:00:00"));
+    }, 60 * 60 * 1000);
+  </script>
+</body>
+</html>
